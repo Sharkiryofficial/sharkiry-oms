@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}ลูกค้า{% endblock %}
+{% block page_title %}ลูกค้าทั้งหมด{% endblock %}
+{% block content %}
+<div class="filter-bar">
+  <form method="GET" style="display:contents">
+    <input type="text" name="q" class="search-input" placeholder="🔍 ค้นหาชื่อ / Social..." value="{{ search }}">
+    <button type="submit" class="btn btn-gold btn-sm">ค้นหา</button>
+    <a href="/customers" class="btn btn-outline btn-sm">รีเซ็ต</a>
+    <span style="margin-left:auto;font-size:12px;color:var(--text-sub)">ทั้งหมด {{ customers|length }} ราย</span>
+  </form>
+</div>
+
+<div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
+  {% set vip_c = customers|selectattr('order_count','gt',5)|list|length %}
+  {% set rep_c = customers|selectattr('order_count','gt',1)|list|length %}
+  {% set new_c = customers|selectattr('order_count','le',1)|list|length %}
+  {% set churn_c = customers|selectattr('last_order', 'ne', None)|selectattr('last_order', 'defined')|list %}
+  <div class="kpi-card"><div class="kpi-label">ทั้งหมด</div><div class="kpi-val">{{ customers|length }}</div></div>
+  <div class="kpi-card"><div class="kpi-label">VIP (>5 ครั้ง)</div><div class="kpi-val text-gold">{{ vip_c }}</div></div>
+  <div class="kpi-card success"><div class="kpi-label">ซื้อซ้ำ</div><div class="kpi-val">{{ rep_c }}</div></div>
+  <div class="kpi-card blue"><div class="kpi-label">ลูกค้าใหม่</div><div class="kpi-val">{{ new_c }}</div></div>
+  <div class="kpi-card danger"><div class="kpi-label">หายไป >45 วัน</div><div class="kpi-val">{{ customers|selectattr('last_order','ne',None)|list|selectattr('last_order','ne',None)|list|length }}</div></div>
+</div>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>ชื่อลูกค้า</th><th>Social</th><th>เบอร์โทร</th><th>ครั้งที่ซื้อ</th><th>ยอดรวม</th><th>ซื้อล่าสุด</th><th>ประเภท</th><th></th></tr></thead>
+  <tbody>
+  {% for c in customers %}
+  {% set ds = days_since(c.last_order) if c.last_order else 999 %}
+  <tr onclick="location.href='/customers/{{ c.id }}'" style="cursor:pointer">
+    <td><strong>{{ c.name }}</strong><br><span style="font-size:11px;color:var(--text-sub)">{{ c.channel or '' }}</span></td>
+    <td style="color:var(--text-sub)">{{ c.social or '—' }}</td>
+    <td style="color:var(--text-sub)">{{ c.phone or '—' }}</td>
+    <td style="text-align:center;font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:700">{{ c.order_count }}</td>
+    <td><strong>{{ fmt_thb(c.total_spend) }}</strong></td>
+    <td>
+      {% if c.last_order %}
+        {{ c.last_order[:10] }}<br>
+        <span style="font-size:11px;color:{% if ds>45 %}var(--red){% else %}var(--text-sub){% endif %}">{{ ds }} วันที่แล้ว</span>
+      {% else %}<span style="color:var(--text-sub)">—</span>{% endif %}
+    </td>
+    <td>
+      {% if c.order_count > 5 %}<span class="tag vip">✦ VIP</span>
+      {% elif c.order_count > 1 %}<span class="tag repeat">ซื้อซ้ำ</span>
+      {% else %}<span class="tag new-c">ใหม่</span>{% endif %}
+      {% if ds > 45 %}<span class="tag churn" style="margin-left:4px">หายไป</span>{% endif %}
+    </td>
+    <td><a href="/customers/{{ c.id }}" class="btn btn-outline btn-sm" onclick="event.stopPropagation()">ดู →</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-sub)">ไม่พบลูกค้า</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

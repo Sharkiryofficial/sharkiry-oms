@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}{{ cust.name }}{% endblock %}
+{% block page_title %}{{ cust.name }}{% endblock %}
+{% block content %}
+<div class="grid-2">
+  <div>
+    <div class="card">
+      <div class="card-title">ข้อมูลลูกค้า</div>
+      <div style="display:grid;gap:14px">
+        <div class="form-row col-2">
+          <div><div class="form-label">ชื่อ</div><strong>{{ cust.name }}</strong></div>
+          <div><div class="form-label">ช่องทางหลัก</div>{{ cust.channel or '—' }}</div>
+        </div>
+        <div class="form-row col-2">
+          <div><div class="form-label">Social / Line</div>{{ cust.social or '—' }}</div>
+          <div><div class="form-label">เบอร์โทร</div>{{ cust.phone or '—' }}</div>
+        </div>
+        <div><div class="form-label">อีเมล</div>{{ cust.email or '—' }}</div>
+        <div><div class="form-label">วันที่ลงทะเบียน</div>{{ cust.created_at[:10] }}</div>
+        {% if cust.notes %}<div><div class="form-label">หมายเหตุ</div>{{ cust.notes }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="kpi-grid" style="grid-template-columns:1fr 1fr">
+      <div class="kpi-card"><div class="kpi-label">ซื้อทั้งหมด</div><div class="kpi-val">{{ stats.cnt }}</div><div class="kpi-sub">ครั้ง</div></div>
+      <div class="kpi-card success"><div class="kpi-label">ยอดรวม</div><div class="kpi-val" style="font-size:20px">{{ fmt_thb(stats.total) }}</div></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--cream-bd)">
+        <div class="font-serif" style="font-size:16px;font-weight:700">ประวัติออเดอร์</div>
+      </div>
+      <table>
+        <thead><tr><th>เลขออเดอร์</th><th>ยอด</th><th>สถานะ</th><th>วันที่</th></tr></thead>
+        <tbody>
+        {% for o in orders %}
+        <tr onclick="location.href='/orders/{{ o.id }}'" style="cursor:pointer">
+          <td><strong>{{ o.order_no }}</strong></td>
+          <td>{{ fmt_thb(o.total) }}</td>
+          <td><span class="tag {{ o.status }}">{{ STATUS_DICT.get(o.status, o.status) }}</span></td>
+          <td style="font-size:12px;color:var(--text-sub)">{{ o.created_at[:10] }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-sub)">ยังไม่มีออเดอร์</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <a href="/customers" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:4px">← กลับรายชื่อลูกค้า</a>
+  </div>
+</div>
+{% endblock %}

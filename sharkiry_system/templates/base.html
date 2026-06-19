@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SHARKIRY — {% block title %}{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --black:#120C06;--brown-dk:#2C1A0A;--brown:#6B4423;
+  --gold:#C9A454;--gold-lt:#E8D49A;
+  --cream:#FAF6EF;--cream-dk:#F0E6CA;--cream-bd:#E0CEAA;
+  --white:#FFFFFF;--text:#2C1A0A;--text-sub:#8B6E4A;
+  --red:#8B2E2E;--red-lt:#F9EDEC;--green:#3A6B2A;--green-lt:#EDF4EB;
+  --blue:#1E4A8B;--blue-lt:#EBF2FF;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sarabun',sans-serif;background:var(--cream);color:var(--text);font-size:15px;display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--black);color:#fff;display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;}
+.s-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(201,164,84,.15);}
+.s-logo .brand{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--gold);}
+.s-logo .sub{font-size:9px;color:rgba(201,164,84,.4);letter-spacing:2px;text-transform:uppercase;margin-top:4px;}
+.s-section{padding:14px 0 2px;}
+.s-label{font-size:9px;color:rgba(201,164,84,.3);text-transform:uppercase;letter-spacing:2px;padding:0 20px 6px;}
+.s-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.5);border-left:2px solid transparent;text-decoration:none;transition:all .15s;}
+.s-item:hover{color:var(--gold-lt);background:rgba(201,164,84,.06);}
+.s-item.active{color:var(--gold);background:rgba(201,164,84,.1);border-left-color:var(--gold);}
+.s-item .ico{width:18px;text-align:center;font-size:14px;}
+.s-divider{height:1px;background:rgba(201,164,84,.1);margin:6px 20px;}
+.s-foot{margin-top:auto;padding:16px 20px;border-top:1px solid rgba(201,164,84,.1);}
+.s-foot .u-name{font-size:13px;color:rgba(255,255,255,.8);font-weight:600;}
+.s-foot .u-role{font-size:10px;color:rgba(201,164,84,.4);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+
+/* MAIN */
+.main{flex:1;margin-left:220px;display:flex;flex-direction:column;min-width:0;}
+.topbar{background:var(--white);border-bottom:1px solid var(--cream-bd);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 4px rgba(44,26,10,.05);position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:700;color:var(--black);letter-spacing:.5px;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.avatar{width:34px;height:34px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--black);font-size:12px;font-weight:700;font-family:'Cormorant Garamond',serif;letter-spacing:1px;}
+.page-content{padding:24px 28px;flex:1;}
+
+/* ALERTS / FLASH */
+.flash{padding:12px 18px;border-radius:10px;margin-bottom:20px;font-size:13px;background:var(--green-lt);border:1px solid #B5D6A0;color:var(--green);}
+.flash.error{background:var(--red-lt);border-color:#E0B0A0;color:var(--red);}
+
+/* CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.kpi-card{background:var(--white);border-radius:12px;padding:20px;border:1px solid var(--cream-bd);box-shadow:0 2px 8px rgba(44,26,10,.05);position:relative;overflow:hidden;}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--gold-lt));}
+.kpi-card.danger::after{background:linear-gradient(90deg,var(--red),#C94444);}
+.kpi-card.success::after{background:linear-gradient(90deg,var(--green),#5A9A3A);}
+.kpi-card.blue::after{background:linear-gradient(90deg,var(--blue),#3B82F6);}
+.kpi-label{font-size:10px;color:var(--text-sub);letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px;}
+.kpi-val{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--black);line-height:1;}
+.kpi-sub{font-size:11px;color:var(--text-sub);margin-top:5px;}
+
+/* CARD */
+.card{background:var(--white);border-radius:12px;border:1px solid var(--cream-bd);padding:20px;box-shadow:0 2px 8px rgba(44,26,10,.05);margin-bottom:18px;}
+.card-title{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:700;color:var(--black);letter-spacing:.5px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.card-title small{font-size:11px;color:var(--text-sub);font-family:'Sarabun',sans-serif;font-weight:400;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--cream-bd);}
+table{width:100%;border-collapse:collapse;font-size:13px;background:var(--white);}
+thead th{background:var(--cream);color:var(--text-sub);font-size:10px;text-transform:uppercase;letter-spacing:.8px;padding:10px 14px;text-align:left;border-bottom:1px solid var(--cream-bd);font-weight:600;}
+tbody tr{border-bottom:1px solid var(--cream);transition:background .1s;}
+tbody tr:last-child{border:none;}
+tbody tr:hover{background:var(--cream);}
+td{padding:11px 14px;color:var(--text);vertical-align:middle;}
+
+/* TAGS */
+.tag{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;}
+.tag.vip{background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--black);}
+.tag.repeat{background:var(--cream-dk);color:var(--brown);}
+.tag.new,.tag.new-c{background:var(--green-lt);color:var(--green);}
+.tag.churn{background:var(--red-lt);color:var(--red);}
+.tag.pending{background:#FFF8E8;color:#92600A;}
+.tag.confirmed{background:var(--blue-lt);color:var(--blue);}
+.tag.packing{background:#F3F0FF;color:#5B21B6;}
+.tag.shipped{background:#FFF3E0;color:#B45309;}
+.tag.done{background:var(--green-lt);color:var(--green);}
+.tag.cancelled{background:var(--red-lt);color:var(--red);}
+.tag.active{background:var(--green-lt);color:var(--green);}
+.tag.ended{background:var(--cream);color:var(--text-sub);}
+.tag.new-l{background:var(--cream-dk);color:var(--brown);}
+.tag.contacted{background:#FFF8E8;color:#92600A;}
+.tag.interested{background:#F3F0FF;color:#5B21B6;}
+.tag.won{background:var(--green-lt);color:var(--green);}
+.tag.lost{background:var(--red-lt);color:var(--red);}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:8px;border:none;font-size:13px;cursor:pointer;font-family:'Sarabun',sans-serif;font-weight:600;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+.btn-gold{background:var(--gold);color:var(--black);}
+.btn-gold:hover{background:#B8932A;}
+.btn-outline{background:transparent;border:1px solid var(--cream-bd);color:var(--text);}
+.btn-outline:hover{background:var(--cream);border-color:var(--gold);}
+.btn-danger{background:var(--red-lt);color:var(--red);border:1px solid #E0B0A0;}
+.btn-sm{padding:5px 12px;font-size:12px;}
+
+/* FORMS */
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-size:12px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.form-control{width:100%;background:var(--cream);border:1px solid var(--cream-bd);border-radius:8px;padding:9px 14px;font-size:14px;color:var(--text);outline:none;font-family:'Sarabun',sans-serif;transition:all .15s;}
+.form-control:focus{border-color:var(--gold);background:var(--white);box-shadow:0 0 0 3px rgba(201,164,84,.1);}
+select.form-control{cursor:pointer;}
+.form-row{display:grid;gap:14px;}
+.form-row.col-2{grid-template-columns:1fr 1fr;}
+.form-row.col-3{grid-template-columns:1fr 1fr 1fr;}
+
+/* FILTER BAR */
+.filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap;}
+.search-input{background:var(--white);border:1px solid var(--cream-bd);border-radius:8px;padding:8px 14px;font-size:13px;outline:none;font-family:'Sarabun',sans-serif;width:220px;transition:all .15s;}
+.search-input:focus{border-color:var(--gold);}
+
+/* PROGRESS */
+.prog-bar{height:8px;background:var(--cream-dk);border-radius:999px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--gold-lt));}
+.prog-fill.red{background:linear-gradient(90deg,var(--red),#C94444);}
+
+/* ALERT BOX */
+.alert-box{background:#FFF8EC;border:1px solid var(--gold-lt);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;gap:12px;align-items:flex-start;}
+.alert-box .a-icon{font-size:20px;flex-shrink:0;}
+.alert-box .a-title{font-size:13px;font-weight:700;color:#7A4E0A;}
+.alert-box .a-text{font-size:12px;color:#9A6B1A;margin-top:2px;}
+
+/* MISC */
+.text-gold{color:var(--gold);} .text-red{color:var(--red);} .text-green{color:var(--green);}
+.text-sub{color:var(--text-sub);} .font-serif{font-family:'Cormorant Garamond',serif;}
+.mt-1{margin-top:6px;} .mt-2{margin-top:14px;} .mt-3{margin-top:22px;}
+.flex{display:flex;} .flex-between{justify-content:space-between;} .items-center{align-items:center;}
+.gap-2{gap:10px;} .gap-3{gap:16px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.badge-count{background:var(--red);color:#fff;border-radius:999px;font-size:10px;padding:1px 6px;margin-left:auto;}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="s-logo">
+    <div class="brand">SHARKIRY</div>
+    <div class="sub">✦ ระบบจัดการ ✦</div>
+  </div>
+  <div class="s-section">
+    <div class="s-label">ภาพรวม</div>
+    <a href="/" class="s-item {% if request.path=='/' %}active{% endif %}">
+      <span class="ico">◈</span> Dashboard
+    </a>
+  </div>
+  <div class="s-divider"></div>
+  <div class="s-section">
+    <div class="s-label">ออเดอร์</div>
+    <a href="/orders/new" class="s-item {% if '/orders/new' in request.path %}active{% endif %}">
+      <span class="ico">✦</span> สร้างออเดอร์ใหม่
+    </a>
+    <a href="/orders" class="s-item {% if request.path=='/orders' %}active{% endif %}">
+      <span class="ico">◇</span> รายการออเดอร์
+    </a>
+  </div>
+  <div class="s-divider"></div>
+  <div class="s-section">
+    <div class="s-label">ลูกค้า</div>
+    <a href="/customers" class="s-item {% if '/customers' in request.path %}active{% endif %}">
+      <span class="ico">✧</span> ลูกค้าทั้งหมด
+    </a>
+    <a href="/leads" class="s-item {% if '/leads' in request.path %}active{% endif %}">
+      <span class="ico">◉</span> Lead / แชท
+    </a>
+  </div>
+  <div class="s-divider"></div>
+  <div class="s-section">
+    <div class="s-label">สินค้า</div>
+    <a href="/inventory" class="s-item {% if '/inventory' in request.path %}active{% endif %}">
+      <span class="ico">⬡</span> สต็อกสินค้า
+    </a>
+  </div>
+  <div class="s-divider"></div>
+  <div class="s-section">
+    <div class="s-label">วิเคราะห์</div>
+    <a href="/reports" class="s-item {% if '/reports' in request.path %}active{% endif %}">
+      <span class="ico">◈</span> รายงาน
+    </a>
+  </div>
+  <div class="s-foot">
+    <div style="font-size:10px;color:rgba(201,164,84,.3);letter-spacing:2px;margin-bottom:6px;">✦ ✦ ✦</div>
+    <div class="u-name">{{ session.user }}</div>
+    <div class="u-role">Sharkiry Team</div>
+    <a href="/logout" style="font-size:11px;color:rgba(201,164,84,.4);margin-top:8px;display:block;text-decoration:none;">ออกจากระบบ →</a>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+    <div class="topbar-right">
+      <a href="/orders/new" class="btn btn-gold btn-sm">✦ ออเดอร์ใหม่</a>
+      <div class="avatar">{{ session.user[:2]|upper }}</div>
+    </div>
+  </div>
+
+  <div class="page-content">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}สร้างออเดอร์ใหม่{% endblock %}
+{% block page_title %}✦ สร้างออเดอร์ใหม่{% endblock %}
+{% block content %}
+<form method="POST" id="order-form">
+<div class="grid-2">
+
+  <!-- LEFT: Customer + items -->
+  <div>
+    <div class="card">
+      <div class="card-title">ข้อมูลลูกค้า</div>
+      <div class="form-group">
+        <label class="form-label">ค้นหาลูกค้าเดิม</label>
+        <input type="text" class="form-control" id="cust-search" placeholder="พิมพ์ชื่อหรือ Social..." autocomplete="off">
+        <div id="cust-results" style="display:none;position:relative;z-index:10;background:var(--white);border:1px solid var(--cream-bd);border-radius:8px;margin-top:4px;box-shadow:0 4px 16px rgba(0,0,0,.1)"></div>
+        <input type="hidden" name="customer_id" id="customer_id">
+      </div>
+      <div class="form-row col-2">
+        <div class="form-group">
+          <label class="form-label">ชื่อลูกค้า *</label>
+          <input type="text" name="customer_name" id="customer_name" class="form-control" placeholder="ชื่อ-นามสกุล" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Social / Line ID</label>
+          <input type="text" name="social" id="cust_social" class="form-control" placeholder="@username">
+        </div>
+      </div>
+      <div class="form-row col-2">
+        <div class="form-group">
+          <label class="form-label">เบอร์โทร</label>
+          <input type="text" name="phone" id="cust_phone" class="form-control" placeholder="08x-xxx-xxxx">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ช่องทาง *</label>
+          <select name="channel" class="form-control" required>
+            {% for ch in CHANNELS %}<option>{{ ch }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">สินค้า <button type="button" class="btn btn-outline btn-sm" onclick="addRow()">+ เพิ่มสินค้า</button></div>
+      <div id="items-container">
+        <div class="item-row" style="display:grid;grid-template-columns:2fr 80px 110px 30px;gap:8px;margin-bottom:8px;align-items:end">
+          <div>
+            <label class="form-label">สินค้า</label>
+            <select name="product_id[]" class="form-control" onchange="fillPrice(this)">
+              <option value="">-- เลือกสินค้า --</option>
+              {% for p in products %}<option value="{{ p.id }}" data-price="{{ p.price }}" data-stock="{{ p.stock }}">{{ p.name }} (เหลือ {{ p.stock }}) — {{ fmt_thb(p.price) }}</option>{% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="form-label">จำนวน</label>
+            <input type="number" name="qty[]" class="form-control qty" value="1" min="1" oninput="calcTotal()">
+          </div>
+          <div>
+            <label class="form-label">ราคา/ชิ้น</label>
+            <input type="number" name="price[]" class="form-control price" value="0" oninput="calcTotal()">
+          </div>
+          <div style="padding-bottom:2px"><button type="button" onclick="removeRow(this)" class="btn btn-danger btn-sm" style="width:100%">✕</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Summary -->
+  <div>
+    <div class="card">
+      <div class="card-title">สรุปออเดอร์</div>
+      <div class="form-group">
+        <label class="form-label">ส่วนลด (บาท)</label>
+        <input type="number" name="discount" id="discount" class="form-control" value="0" min="0" oninput="calcTotal()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ค่าส่ง (บาท)</label>
+        <input type="number" name="shipping" id="shipping" class="form-control" value="0" min="0" oninput="calcTotal()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">หมายเหตุ</label>
+        <textarea name="notes" class="form-control" rows="3" placeholder="ที่อยู่จัดส่ง, หมายเหตุพิเศษ..."></textarea>
+      </div>
+      <div style="background:var(--cream);border-radius:10px;padding:16px;margin-top:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;color:var(--text-sub)">
+          <span>ราคารวม</span><span id="show-sub">฿0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;color:var(--text-sub)">
+          <span>ส่วนลด</span><span id="show-disc">-฿0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:13px;color:var(--text-sub)">
+          <span>ค่าส่ง</span><span id="show-ship">฿0</span>
+        </div>
+        <div style="border-top:1px solid var(--cream-bd);padding-top:10px;display:flex;justify-content:space-between">
+          <span class="font-serif" style="font-size:18px;font-weight:700">ยอดรวม</span>
+          <span class="font-serif" style="font-size:22px;font-weight:700;color:var(--black)" id="show-total">฿0</span>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-gold" style="width:100%;margin-top:16px;justify-content:center;font-size:15px;padding:13px">✦ บันทึกออเดอร์</button>
+    </div>
+  </div>
+</div>
+</form>
+
+<script>
+const allProducts = {{ products | tojson(default=str) }};
+const prodMap = {};
+allProducts.forEach(p => prodMap[p.id] = p);
+
+function fillPrice(sel) {
+  const row = sel.closest('.item-row');
+  const pid = sel.value;
+  if (pid && prodMap[pid]) row.querySelector('.price').value = prodMap[pid].price;
+  calcTotal();
+}
+
+function calcTotal() {
+  let sub = 0;
+  document.querySelectorAll('.item-row').forEach(row => {
+    const q = parseFloat(row.querySelector('.qty')?.value || 0);
+    const p = parseFloat(row.querySelector('.price')?.value || 0);
+    sub += q * p;
+  });
+  const disc = parseFloat(document.getElementById('discount').value || 0);
+  const ship = parseFloat(document.getElementById('shipping').value || 0);
+  const total = sub - disc + ship;
+  document.getElementById('show-sub').textContent   = '฿' + sub.toLocaleString('th');
+  document.getElementById('show-disc').textContent  = '-฿' + disc.toLocaleString('th');
+  document.getElementById('show-ship').textContent  = '฿' + ship.toLocaleString('th');
+  document.getElementById('show-total').textContent = '฿' + total.toLocaleString('th');
+}
+
+function addRow() {
+  const tpl = document.querySelector('.item-row').cloneNode(true);
+  tpl.querySelector('select').value = '';
+  tpl.querySelector('.qty').value = 1;
+  tpl.querySelector('.price').value = 0;
+  tpl.querySelector('select').onchange = function() { fillPrice(this); };
+  tpl.querySelector('.qty').oninput = calcTotal;
+  tpl.querySelector('.price').oninput = calcTotal;
+  document.getElementById('items-container').appendChild(tpl);
+}
+
+function removeRow(btn) {
+  const rows = document.querySelectorAll('.item-row');
+  if (rows.length > 1) { btn.closest('.item-row').remove(); calcTotal(); }
+}
+
+// Customer search
+const searchInput = document.getElementById('cust-search');
+const results = document.getElementById('cust-results');
+let searchTimer;
+
+searchInput.addEventListener('input', function() {
+  clearTimeout(searchTimer);
+  const q = this.value.trim();
+  if (q.length < 2) { results.style.display='none'; return; }
+  searchTimer = setTimeout(async () => {
+    const res = await fetch('/api/customers?q=' + encodeURIComponent(q));
+    const data = await res.json();
+    if (data.length === 0) { results.style.display='none'; return; }
+    results.innerHTML = data.map(c => `
+      <div style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--cream);font-size:13px"
+           onmousedown="selectCustomer(${c.id},'${c.name}','${c.social||''}','${c.phone||''}')">
+        <strong>${c.name}</strong> <span style="color:var(--text-sub)">${c.social||''} ${c.phone||''}</span>
+      </div>`).join('');
+    results.style.display = 'block';
+  }, 300);
+});
+
+function selectCustomer(id, name, social, phone) {
+  document.getElementById('customer_id').value   = id;
+  document.getElementById('customer_name').value = name;
+  document.getElementById('cust_social').value   = social;
+  document.getElementById('cust_phone').value    = phone;
+  document.getElementById('cust-search').value   = name;
+  results.style.display = 'none';
+}
+
+document.addEventListener('click', e => { if (!e.target.closest('#cust-search') && !e.target.closest('#cust-results')) results.style.display = 'none'; });
+</script>
+{% endblock %}

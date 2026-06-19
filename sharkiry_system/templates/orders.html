@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}รายการออเดอร์{% endblock %}
+{% block page_title %}รายการออเดอร์{% endblock %}
+{% block content %}
+<div class="filter-bar">
+  <form method="GET" style="display:contents">
+    <input type="text" name="q" class="search-input" placeholder="🔍 ค้นหาชื่อ / เลขออเดอร์..." value="{{ search }}">
+    <select name="status" class="form-control" style="width:160px">
+      <option value="">สถานะทั้งหมด</option>
+      {% for k,v in STATUSES %}<option value="{{ k }}" {% if status_f==k %}selected{% endif %}>{{ v }}</option>{% endfor %}
+    </select>
+    <select name="channel" class="form-control" style="width:160px">
+      <option value="">ช่องทางทั้งหมด</option>
+      {% for ch in CHANNELS %}<option {% if channel_f==ch %}selected{% endif %}>{{ ch }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn btn-gold btn-sm">กรอง</button>
+    <a href="/orders" class="btn btn-outline btn-sm">รีเซ็ต</a>
+    <a href="/orders/new" class="btn btn-gold btn-sm" style="margin-left:auto">✦ ออเดอร์ใหม่</a>
+  </form>
+</div>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>เลขออเดอร์</th><th>ลูกค้า</th><th>ช่องทาง</th><th>ยอด</th><th>ส่วนลด</th><th>สถานะ</th><th>วันที่</th><th></th></tr></thead>
+  <tbody>
+  {% for o in orders %}
+  <tr onclick="location.href='/orders/{{ o.id }}'" style="cursor:pointer">
+    <td><strong class="font-serif">{{ o.order_no }}</strong></td>
+    <td>{{ o.customer_name }}</td>
+    <td><span style="font-size:11px;color:var(--text-sub)">{{ o.channel }}</span></td>
+    <td><strong>{{ fmt_thb(o.total) }}</strong></td>
+    <td style="color:var(--text-sub)">{{ fmt_thb(o.discount) if o.discount else '—' }}</td>
+    <td><span class="tag {{ o.status }}">{{ STATUS_DICT.get(o.status, o.status) }}</span></td>
+    <td style="font-size:12px;color:var(--text-sub)">{{ o.created_at[:10] }}</td>
+    <td><a href="/orders/{{ o.id }}" class="btn btn-outline btn-sm" onclick="event.stopPropagation()">ดู →</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-sub)">ไม่พบออเดอร์</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<div style="margin-top:12px;font-size:12px;color:var(--text-sub);text-align:right">ทั้งหมด {{ orders|length }} รายการ</div>
+{% endblock %}

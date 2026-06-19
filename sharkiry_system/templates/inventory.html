@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}สต็อกสินค้า{% endblock %}
+{% block page_title %}สต็อกสินค้า{% endblock %}
+{% block content %}
+
+{% set low = products|selectattr('stock','le',products[0].low_alert if products else 0)|list %}
+{% if products|selectattr('stock','le','low_alert')|list %}
+<div class="alert-box">
+  <div class="a-icon">⚠</div>
+  <div><div class="a-title">มีสินค้าใกล้หมด</div><div class="a-text">ตรวจสอบและเติมสต็อกก่อนสินค้าหมด</div></div>
+</div>
+{% endif %}
+
+<div class="grid-2">
+  <div>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>สินค้า</th><th>SKU</th><th>ราคา</th><th>ต้นทุน</th><th>สต็อก</th><th>แจ้งเตือน</th><th></th></tr></thead>
+      <tbody>
+      {% for p in products %}
+      <tr>
+        <td><strong>{{ p.name }}</strong></td>
+        <td style="color:var(--text-sub);font-size:12px">{{ p.sku or '—' }}</td>
+        <td>{{ fmt_thb(p.price) }}</td>
+        <td style="color:var(--text-sub)">{{ fmt_thb(p.cost) }}</td>
+        <td>
+          <span style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:700;color:{% if p.stock<=p.low_alert %}var(--red){% elif p.stock<=p.low_alert*2 %}#B45309{% else %}var(--green){% endif %}">
+            {{ p.stock }}
+          </span>
+        </td>
+        <td style="color:var(--text-sub);font-size:12px">≤ {{ p.low_alert }}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="openAdjust({{ p.id }},'{{ p.name }}')">ปรับ</button>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div>
+    <!-- Add Product -->
+    <div class="card">
+      <div class="card-title">✦ เพิ่มสินค้าใหม่</div>
+      <form method="POST" action="/inventory/add">
+        <div class="form-group">
+          <label class="form-label">ชื่อสินค้า *</label>
+          <input type="text" name="name" class="form-control" required placeholder="ชื่อสินค้า">
+        </div>
+        <div class="form-row col-2">
+          <div class="form-group">
+            <label class="form-label">SKU</label>
+            <input type="text" name="sku" class="form-control" placeholder="SKP-001">
+          </div>
+          <div class="form-group">
+            <label class="form-label">แจ้งเตือนเมื่อเหลือ</label>
+            <input type="number" name="low_alert" class="form-control" value="10" min="1">
+          </div>
+        </div>
+        <div class="form-row col-2">
+          <div class="form-group">
+            <label class="form-label">ราคาขาย (฿)</label>
+            <input type="number" name="price" class="form-control" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ต้นทุน (฿)</label>
+            <input type="number" name="cost" class="form-control" value="0" min="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">สต็อกเริ่มต้น</label>
+          <input type="number" name="stock" class="form-control" value="0" min="0">
+        </div>
+        <button type="submit" class="btn btn-gold" style="width:100%;justify-content:center">เพิ่มสินค้า</button>
+      </form>
+    </div>
+
+    <!-- Stock Log -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--cream-bd)">
+        <div class="font-serif" style="font-size:15px;font-weight:700">ประวัติการเคลื่อนไหวสต็อก</div>
+      </div>
+      <table>
+        <thead><tr><th>สินค้า</th><th>จำนวน</th><th>เหตุผล</th><th>วันที่</th></tr></thead>
+        <tbody>
+        {% for l in logs %}
+        <tr>
+          <td style="font-size:12px">{{ l.product_name }}</td>
+          <td style="text-align:center;font-weight:700;color:{% if l.qty_change<0 %}var(--red){% else %}var(--green){% endif %}">
+            {% if l.qty_change>0 %}+{% endif %}{{ l.qty_change }}
+          </td>
+          <td style="font-size:12px;color:var(--text-sub)">{{ l.reason }}</td>
+          <td style="font-size:11px;color:var(--text-sub)">{{ l.created_at[:10] }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Adjust Modal -->
+<div id="adjust-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center">
+  <div style="background:var(--white);border-radius:14px;padding:28px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div class="font-serif" style="font-size:18px;font-weight:700;margin-bottom:6px">ปรับสต็อก</div>
+    <div id="adjust-name" style="font-size:13px;color:var(--text-sub);margin-bottom:18px"></div>
+    <form method="POST" id="adjust-form">
+      <div class="form-group">
+        <label class="form-label">จำนวน (ใส่ - เพื่อลด เช่น -5)</label>
+        <input type="number" name="qty" class="form-control" placeholder="เช่น +100 หรือ -5" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">เหตุผล</label>
+        <input type="text" name="reason" class="form-control" value="รับสินค้าเข้า">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button type="submit" class="btn btn-gold" style="flex:1;justify-content:center">บันทึก</button>
+        <button type="button" class="btn btn-outline" onclick="closeAdjust()">ยกเลิก</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openAdjust(id, name) {
+  document.getElementById('adjust-modal').style.display = 'flex';
+  document.getElementById('adjust-name').textContent = name;
+  document.getElementById('adjust-form').action = '/inventory/' + id + '/adjust';
+}
+function closeAdjust() { document.getElementById('adjust-modal').style.display = 'none'; }
+</script>
+{% endblock %}

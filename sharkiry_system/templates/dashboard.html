@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-label">ออเดอร์วันนี้</div>
+    <div class="kpi-val">{{ today_orders }}</div>
+    <div class="kpi-sub">รายการ</div>
+  </div>
+  <div class="kpi-card success">
+    <div class="kpi-label">ยอดวันนี้</div>
+    <div class="kpi-val">{{ fmt_thb(today_revenue) }}</div>
+    <div class="kpi-sub">ยอดเดือนนี้ {{ fmt_thb(month_revenue) }}</div>
+  </div>
+  <div class="kpi-card blue">
+    <div class="kpi-label">ลูกค้าทั้งหมด</div>
+    <div class="kpi-val">{{ total_customers }}</div>
+    <div class="kpi-sub">ลูกค้าที่หายไป {{ churn_count }} ราย</div>
+  </div>
+  <div class="kpi-card {% if pending_count > 0 %}danger{% endif %}">
+    <div class="kpi-label">รอยืนยัน</div>
+    <div class="kpi-val">{{ pending_count }}</div>
+    <div class="kpi-sub">ออเดอร์ที่ยังไม่ได้ดำเนินการ</div>
+  </div>
+</div>
+
+<!-- Progress bar -->
+<div class="card">
+  <div class="card-title">ความคืบหน้ายอดขายเดือนนี้ <small>เป้า ฿3,000,000</small></div>
+  {% set pct = [(month_revenue / 3000000 * 100)|round(1), 100]|min %}
+  <div style="display:flex;align-items:center;gap:20px">
+    <div style="flex:1">
+      <div class="prog-bar"><div class="prog-fill {% if pct < 50 %}red{% endif %}" style="width:{{ pct }}%"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--text-sub)">
+        <span>{{ fmt_thb(month_revenue) }}</span>
+        <span style="font-weight:700;color:var(--brown)">{{ pct }}%</span>
+        <span>฿3,000,000</span>
+      </div>
+    </div>
+    <div class="font-serif" style="font-size:32px;font-weight:700">{{ pct }}<span style="font-size:16px">%</span></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Low stock alert -->
+  {% if low_stock %}
+  <div class="card">
+    <div class="card-title text-red">⚠ สินค้าใกล้หมด</div>
+    {% for p in low_stock %}
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--cream);font-size:13px">
+      <span>{{ p.name }}</span>
+      <span style="font-weight:700;color:{% if p.stock<=5 %}var(--red){% else %}var(--brown){% endif %}">เหลือ {{ p.stock }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Revenue chart -->
+  <div class="card">
+    <div class="card-title">ยอดขายรายเดือน</div>
+    <canvas id="rev-chart" height="160"></canvas>
+  </div>
+</div>
+
+<!-- Recent orders -->
+<div class="card" style="padding:0;overflow:hidden">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--cream-bd);display:flex;justify-content:space-between;align-items:center">
+    <div class="font-serif" style="font-size:16px;font-weight:700">ออเดอร์ล่าสุด</div>
+    <a href="/orders" class="btn btn-outline btn-sm">ดูทั้งหมด →</a>
+  </div>
+  <table>
+    <thead><tr><th>เลขออเดอร์</th><th>ลูกค้า</th><th>ช่องทาง</th><th>ยอด</th><th>สถานะ</th><th>วันที่</th></tr></thead>
+    <tbody>
+    {% for o in recent_orders %}
+    <tr onclick="location.href='/orders/{{ o.id }}'" style="cursor:pointer">
+      <td><strong>{{ o.order_no }}</strong></td>
+      <td>{{ o.customer_name }}</td>
+      <td><span style="font-size:11px;color:var(--text-sub)">{{ o.channel }}</span></td>
+      <td><strong>{{ fmt_thb(o.total) }}</strong></td>
+      <td><span class="tag {{ o.status }}">{{ STATUS_DICT.get(o.status, o.status) }}</span></td>
+      <td style="font-size:12px;color:var(--text-sub)">{{ o.created_at[:10] }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+const months = {{ months_data | tojson }};
+new Chart(document.getElementById('rev-chart'), {
+  type: 'bar',
+  data: {
+    labels: months.map(m => m.month),
+    datasets: [{
+      label: 'ยอดขาย',
+      data: months.map(m => m.revenue),
+      backgroundColor: 'rgba(201,164,84,.75)',
+      borderRadius: 6, borderSkipped: false
+    }]
+  },
+  options: {
+    responsive: true, plugins: { legend: { display: false } },
+    scales: {
+      y: { ticks: { callback: v => '฿' + (v/1e6).toFixed(1) + 'M', font: { size: 11 }, color: '#8B6E4A' }, grid: { color: '#F0E6CA' } },
+      x: { ticks: { font: { size: 11 }, color: '#8B6E4A' }, grid: { display: false } }
+    }
+  }
+});
+</script>
+{% endblock %}

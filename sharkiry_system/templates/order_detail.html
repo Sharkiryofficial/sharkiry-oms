@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}{{ order.order_no }}{% endblock %}
+{% block page_title %}{{ order.order_no }}{% endblock %}
+{% block content %}
+<div class="grid-2">
+  <div>
+    <div class="card">
+      <div class="card-title">รายการสินค้า</div>
+      <table>
+        <thead><tr><th>สินค้า</th><th>จำนวน</th><th>ราคา/ชิ้น</th><th>รวม</th></tr></thead>
+        <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it.product_name }}</td>
+          <td style="text-align:center">{{ it.qty }}</td>
+          <td>{{ fmt_thb(it.unit_price) }}</td>
+          <td><strong>{{ fmt_thb(it.total) }}</strong></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <div style="background:var(--cream);border-radius:8px;padding:14px;margin-top:14px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-sub);margin-bottom:6px"><span>ราคารวม</span><span>{{ fmt_thb(order.subtotal) }}</span></div>
+        {% if order.discount %}<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-sub);margin-bottom:6px"><span>ส่วนลด</span><span class="text-red">-{{ fmt_thb(order.discount) }}</span></div>{% endif %}
+        {% if order.shipping %}<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-sub);margin-bottom:6px"><span>ค่าส่ง</span><span>{{ fmt_thb(order.shipping) }}</span></div>{% endif %}
+        <div style="display:flex;justify-content:space-between;border-top:1px solid var(--cream-bd);padding-top:10px">
+          <span class="font-serif" style="font-size:17px;font-weight:700">ยอดรวม</span>
+          <span class="font-serif" style="font-size:22px;font-weight:700">{{ fmt_thb(order.total) }}</span>
+        </div>
+      </div>
+    </div>
+
+    {% if order.notes %}
+    <div class="card">
+      <div class="card-title">หมายเหตุ</div>
+      <p style="font-size:14px;color:var(--text);line-height:1.6">{{ order.notes }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-title">ข้อมูลออเดอร์</div>
+      <div style="display:grid;gap:12px">
+        <div><div class="form-label">สถานะ</div><span class="tag {{ order.status }}" style="font-size:13px">{{ STATUS_DICT.get(order.status, order.status) }}</span></div>
+        <div><div class="form-label">ช่องทาง</div>{{ order.channel }}</div>
+        <div><div class="form-label">ลูกค้า</div>
+          {{ order.customer_name }}
+          {% if cust %}<br><a href="/customers/{{ cust.id }}" style="font-size:11px;color:var(--gold)">ดูประวัติลูกค้า →</a>{% endif %}
+        </div>
+        {% if order.tracking %}<div><div class="form-label">หมายเลขพัสดุ</div><strong>{{ order.tracking }}</strong></div>{% endif %}
+        <div><div class="form-label">วันที่สร้าง</div>{{ order.created_at[:16] }}</div>
+        <div><div class="form-label">อัปเดตล่าสุด</div>{{ order.updated_at[:16] }}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">อัปเดตสถานะ</div>
+      <form method="POST" action="/orders/{{ order.id }}/status">
+        <div class="form-group">
+          <label class="form-label">สถานะใหม่</label>
+          <select name="status" class="form-control">
+            {% for k,v in STATUSES %}
+            <option value="{{ k }}" {% if order.status==k %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">หมายเลขพัสดุ (ถ้ามี)</label>
+          <input type="text" name="tracking" class="form-control" value="{{ order.tracking or '' }}" placeholder="EMS / Kerry / J&T...">
+        </div>
+        <button type="submit" class="btn btn-gold" style="width:100%;justify-content:center">อัปเดต</button>
+      </form>
+    </div>
+
+    <a href="/orders" class="btn btn-outline" style="width:100%;justify-content:center">← กลับรายการออเดอร์</a>
+  </div>
+</div>
+{% endblock %}

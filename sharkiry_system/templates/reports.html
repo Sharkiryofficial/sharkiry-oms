@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block title %}รายงาน{% endblock %}
+{% block page_title %}รายงานยอดขาย{% endblock %}
+{% block content %}
+
+<div class="filter-bar">
+  <form method="GET" style="display:contents">
+    <select name="period" class="form-control" style="width:180px" onchange="this.form.submit()">
+      <option value="today"  {% if period=='today' %}selected{% endif %}>วันนี้</option>
+      <option value="week"   {% if period=='week'  %}selected{% endif %}>7 วันที่ผ่านมา</option>
+      <option value="month"  {% if period=='month' %}selected{% endif %}>เดือนนี้</option>
+    </select>
+  </form>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card success">
+    <div class="kpi-label">ยอดขายรวม</div>
+    <div class="kpi-val">{{ fmt_thb(revenue) }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">จำนวนออเดอร์</div>
+    <div class="kpi-val">{{ ord_count }}</div>
+    <div class="kpi-sub">เฉลี่ย {{ fmt_thb(revenue / ord_count if ord_count else 0) }} / ออเดอร์</div>
+  </div>
+  <div class="kpi-card blue">
+    <div class="kpi-label">ลูกค้าใหม่</div>
+    <div class="kpi-val">{{ new_custs }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">ค่าแอด (เป้า ≤25%)</div>
+    <div class="kpi-val" style="font-size:20px">— %</div>
+    <div class="kpi-sub">กรอกค่าแอดใน แคมเปญ</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Channel -->
+  <div class="card">
+    <div class="card-title">ยอดแยกตามช่องทาง</div>
+    <table>
+      <thead><tr><th>ช่องทาง</th><th>ออเดอร์</th><th>ยอด</th><th>สัดส่วน</th></tr></thead>
+      <tbody>
+      {% for ch in channels %}
+      <tr>
+        <td>{{ ch.channel }}</td>
+        <td style="text-align:center">{{ ch.cnt }}</td>
+        <td><strong>{{ fmt_thb(ch.rev) }}</strong></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="prog-bar" style="flex:1;height:6px"><div class="prog-fill" style="width:{{ (ch.rev/revenue*100)|round(0)|int if revenue else 0 }}%"></div></div>
+            <span style="font-size:11px;color:var(--text-sub);width:35px;text-align:right">{{ (ch.rev/revenue*100)|round(1) if revenue else 0 }}%</span>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" style="text-align:center;color:var(--text-sub);padding:20px">ไม่มีข้อมูล</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Top Products -->
+  <div class="card">
+    <div class="card-title">สินค้าขายดี</div>
+    <table>
+      <thead><tr><th>สินค้า</th><th>จำนวน</th><th>ยอด</th></tr></thead>
+      <tbody>
+      {% for p in top_prods %}
+      <tr>
+        <td>{{ p.product_name }}</td>
+        <td style="text-align:center;font-family:'Cormorant Garamond',serif;font-size:16px">{{ p.qty }}</td>
+        <td><strong>{{ fmt_thb(p.rev) }}</strong></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" style="text-align:center;color:var(--text-sub);padding:20px">ไม่มีข้อมูล</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Daily chart -->
+<div class="card">
+  <div class="card-title">ยอดขายรายวัน <small>30 วันที่ผ่านมา</small></div>
+  <canvas id="daily-chart" height="120"></canvas>
+</div>
+
+<!-- Campaigns -->
+<div class="card" style="padding:0;overflow:hidden">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--cream-bd)">
+    <div class="font-serif" style="font-size:16px;font-weight:700">แคมเปญ</div>
+  </div>
+  <table>
+    <thead><tr><th>แคมเปญ</th><th>งบ</th><th>ค่าแอด</th><th>ยอดขาย</th><th>ROAS</th><th>ค่าแอด%</th><th>สถานะ</th></tr></thead>
+    <tbody>
+    {% for c in campaigns %}
+    <tr>
+      <td><strong>{{ c.name }}</strong><br><span style="font-size:11px;color:var(--text-sub)">{{ c.start_date }} – {{ c.end_date }}</span></td>
+      <td>{{ fmt_thb(c.budget) }}</td>
+      <td>{{ fmt_thb(c.ad_spend) }}</td>
+      <td><strong>{{ fmt_thb(c.revenue) }}</strong></td>
+      <td style="font-weight:700;color:{% if c.ad_spend and c.revenue/c.ad_spend>=2 %}var(--green){% else %}var(--red){% endif %}">
+        {{ '%.2f'|format(c.revenue/c.ad_spend) if c.ad_spend else '—' }}x
+      </td>
+      <td style="color:{% if c.ad_spend and (c.ad_spend/c.revenue*100)<=25 %}var(--green){% else %}var(--red){% endif %}">
+        {{ '%.1f'|format(c.ad_spend/c.revenue*100) if c.revenue else '—' }}%
+      </td>
+      <td><span class="tag {{ c.status }}">{{ 'กำลังดำเนินการ' if c.status=='active' else 'สิ้นสุดแล้ว' }}</span></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" style="text-align:center;color:var(--text-sub);padding:20px">ยังไม่มีแคมเปญ</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+const daily = {{ daily | tojson }};
+new Chart(document.getElementById('daily-chart'), {
+  type: 'line',
+  data: {
+    labels: daily.map(d => d.day),
+    datasets: [{
+      label: 'ยอดขาย',
+      data: daily.map(d => d.rev),
+      borderColor: '#C9A454', backgroundColor: 'rgba(201,164,84,.1)',
+      fill: true, tension: 0.4, borderWidth: 2, pointRadius: 3
+    }]
+  },
+  options: {
+    responsive: true, plugins: { legend: { display: false } },
+    scales: {
+      y: { ticks: { callback: v => '฿'+(v/1000)+'K', font: { size: 11 }, color: '#8B6E4A' }, grid: { color: '#F0E6CA' } },
+      x: { ticks: { font: { size: 10 }, color: '#8B6E4A', maxTicksLimit: 10 }, grid: { display: false } }
+    }
+  }
+});
+</script>
+{% endblock %}

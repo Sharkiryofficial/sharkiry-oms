@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Lead / แชท{% endblock %}
+{% block page_title %}Lead / แชท{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+  <button class="btn btn-gold" onclick="document.getElementById('add-modal').style.display='flex'">✦ เพิ่ม Lead</button>
+</div>
+
+{% set cols = [('new','ใหม่'),('contacted','ติดต่อแล้ว'),('interested','สนใจ'),('won','ปิดการขาย')] %}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+{% for key,label in cols %}
+  <div style="background:var(--cream);border-radius:12px;padding:14px;border:1px solid var(--cream-bd)">
+    <div style="font-size:12px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+      {{ label }}
+      <span style="background:var(--cream-dk);border-radius:999px;font-size:10px;padding:1px 7px;color:var(--text-sub)">{{ leads|selectattr('status','eq',key)|list|length }}</span>
+    </div>
+    {% for l in leads if l.status == key %}
+    <div style="background:var(--white);border-radius:10px;border:1px solid var(--cream-bd);padding:13px;margin-bottom:10px;box-shadow:0 1px 4px rgba(44,26,10,.04)">
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px">{{ l.name }}</div>
+      <div style="font-size:11px;color:var(--text-sub);margin-bottom:6px">{{ l.source }} · {{ l.created_at[:10] }}{% if l.budget %} · ฿{{ '{:,.0f}'.format(l.budget) }}{% endif %}</div>
+      {% if l.notes %}<div style="font-size:11px;color:var(--text-sub);line-height:1.5;margin-bottom:8px">{{ l.notes }}</div>{% endif %}
+      <form method="POST" action="/leads/{{ l.id }}/status" style="display:flex;gap:6px">
+        <select name="status" class="form-control" style="font-size:11px;padding:4px 8px">
+          {% for k,v in [('new','ใหม่'),('contacted','ติดต่อแล้ว'),('interested','สนใจ'),('won','ปิดแล้ว'),('lost','ไม่ซื้อ')] %}
+          <option value="{{ k }}" {% if l.status==k %}selected{% endif %}>{{ v }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn btn-gold btn-sm">✓</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+</div>
+
+<!-- Lost section -->
+{% set lost = leads|selectattr('status','eq','lost')|list %}
+{% if lost %}
+<div class="card" style="margin-top:20px">
+  <div class="card-title">ไม่ซื้อ / ปิดไปแล้ว <small>{{ lost|length }} ราย</small></div>
+  <table>
+    <thead><tr><th>ชื่อ</th><th>ช่องทาง</th><th>หมายเหตุ</th><th>วันที่</th></tr></thead>
+    <tbody>
+    {% for l in lost %}
+    <tr><td>{{ l.name }}</td><td>{{ l.source }}</td><td style="color:var(--text-sub);font-size:12px">{{ l.notes or '—' }}</td><td style="font-size:12px;color:var(--text-sub)">{{ l.created_at[:10] }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Add Modal -->
+<div id="add-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center">
+  <div style="background:var(--white);border-radius:14px;padding:28px;width:400px">
+    <div class="font-serif" style="font-size:18px;font-weight:700;margin-bottom:18px">✦ เพิ่ม Lead ใหม่</div>
+    <form method="POST" action="/leads/add">
+      <div class="form-group">
+        <label class="form-label">ชื่อลูกค้า *</label>
+        <input type="text" name="name" class="form-control" required>
+      </div>
+      <div class="form-row col-2">
+        <div class="form-group">
+          <label class="form-label">ช่องทาง</label>
+          <select name="source" class="form-control">
+            {% for ch in CHANNELS %}<option>{{ ch }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">งบประมาณ (฿)</label>
+          <input type="number" name="budget" class="form-control" value="1200" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">หมายเหตุ</label>
+        <textarea name="notes" class="form-control" rows="2"></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button type="submit" class="btn btn-gold" style="flex:1;justify-content:center">บันทึก</button>
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('add-modal').style.display='none'">ยกเลิก</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
