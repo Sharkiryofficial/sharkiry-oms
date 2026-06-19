@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+ from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 import sqlite3, os
 from datetime import datetime, timedelta
 from functools import wraps
@@ -281,9 +281,9 @@ def order_new():
         # Auto-create customer if needed
         if not cust_id and cust_name:
             with get_db() as c:
-                c.execute('INSERT INTO customers (name,social,phone,channel) VALUES (?,?,?,?)',
+                cur = c.execute('INSERT INTO customers (name,social,phone,channel) VALUES (?,?,?,?)',
                           (cust_name, f.get('social',''), f.get('phone',''), channel))
-                cust_id = c.lastrowid
+                cust_id = cur.lastrowid
 
         pids   = request.form.getlist('product_id[]')
         qtys   = request.form.getlist('qty[]')
@@ -297,12 +297,12 @@ def order_new():
         now      = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         with get_db() as c:
-            c.execute('''INSERT INTO orders
+            cur = c.execute('''INSERT INTO orders
                 (order_no,customer_id,customer_name,channel,status,subtotal,discount,shipping,total,notes,created_at,updated_at)
                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
                 (order_no, cust_id, cust_name, channel, 'pending',
                  subtotal, discount, shipping, total, f.get('notes',''), now, now))
-            oid = c.lastrowid
+            oid = cur.lastrowid
 
             for pid, qty, price in zip(pids, qtys, prices):
                 if pid and qty:
